@@ -1,5 +1,5 @@
 import streamlit as st
-import leafmap.foliumap as leafmap
+#import leafmap.foliumap as leafmap
 import os
 import streamlit as st
 import google.generativeai as genai
