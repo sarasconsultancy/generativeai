@@ -6,3 +6,8 @@ pillow==10.2.0
 pdf2image
 pandas
 leafmap
+langchain
+chromadb
+faiss-cpu
+langchain_google_genai
+
