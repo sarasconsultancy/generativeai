@@ -1,0 +1,38 @@
+cookie:
+  expiry_days: 30
+  key: some_signature_key
+  name: come_cookie_name
+
+credentials:
+  usernames:
+    dbaldwin:
+      email: dbaldwin@gmail.com
+      failed_login_attempts: 0
+      logged_in: false
+      name: David
+      password: David@123
+
+    jsmith:
+      email: jsmith@gmail.com
+      failed_login_attempts: 0
+      logged_in: true
+      name: jsmith
+      password: jsmith@123
+
+    arun:
+      email: arun@gmail.com
+      failed_login_attempts: 0
+      logged_in: false
+      name: arun
+      password: arun@123
+
+    Tanzeem:
+      email: tanzeem@gmail.com
+      failed_login_attempts: 0
+      logged_in: false
+      name: Tanzeem
+      password: tanzeem@123
+
+pre-authorized:
+  email:
+  - xyz@gmail.com
