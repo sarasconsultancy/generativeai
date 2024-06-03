@@ -13,7 +13,7 @@ faiss-cpu
 langchain_google_genai
 langchain-community
 python-pptx
-streamlit_authenticator
+streamlit-authenticator==0.1.5
 
 
 

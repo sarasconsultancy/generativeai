@@ -1,97 +1,76 @@
+from dotenv import load_dotenv
+load_dotenv() ## loading all the environment variables
 import streamlit as st
 import os
-from dotenv import load_dotenv
-from streamlit_option_menu import option_menu
-from PIL import Image
 import google.generativeai as genai
-# Load environment variables
-load_dotenv()
+import streamlit_authenticator as stauth
+import pickle
+from pathlib import Path
 
-GOOGLE_API_KEY = os.getenv("api_key")
+st.set_page_config(page_title="Q&A Demo")
 
-# Set up Google Gemini-Pro AI model
-genai.configure(api_key=GOOGLE_API_KEY)
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+## function to load Gemini Pro model and get repsonses
+model=genai.GenerativeModel("gemini-pro") 
+chat = model.start_chat(history=[])
 
-# load gemini-pro model
-def gemini_pro():
-    model=genai.GenerativeModel('gemini-pro')
-    return model
+#Authentication
+# --- USER AUTHENTICATION ----
 
-# Load gemini vision model
-def gemini_vision():
-    model=genai.GenerativeModel('gemini-pro-vision')
-    return model
+names = ["Arun","Tanzeem"]
+usernames = ["arun","tanzeem"]
 
-# get response from gemini pro vision model
-def gemini_visoin_response(model, prompt, image):
-    response = model.generate_content([prompt, image])
-    return response.text
+#Load Hashed Password
+file_path = Path(__file__).parent / "hashed_pw.pkl"
+with file_path.open("rb") as file:
+    hashed_passwords = pickle.load(file)
 
-# Set page title and icon
+#Initialize the authenticator
 
-st.set_page_config(
-    page_title="Chat With Gemi",
-    page_icon="🧠",
-    layout="centered",
-    initial_sidebar_state="expanded"
+authenticator = stauth.Authenticate(
+    names,
+    usernames,
+    hashed_passwords,
+    'Q&A Demo',
+    'abcdef',
+    cookie_expiry_days=30
 )
 
-with st.sidebar:
-    user_picked = option_menu(
-        "Google Gemini AI",
-        ["ChatBot", "Image Captioning"],
-        menu_icon="robot",
-        icons = ["chat-dots-fill", "image-fill"],
-        default_index=0
-    )
+name, authentication_status, username = authenticator.login("Login","main")
 
-def roleForStreamlit(user_role):
-    if user_role == 'model':
-        return 'assistant'
-    else:
-        return user_role
+if authentication_status == False:
+    st.error("Username/Password is Incorrect")
+elif authentication_status == None:
+    st.error("Please enter your username and password")
+elif authentication_status:
+    st.header("Gemini LLM Application")
+
+    #Initialize session state for chat histroy if it doesnt exist
+    if 'chat_history' not in st.session_state:
+        st.session_state['chat_history'] = []
     
+    @st.cache
+    def get_gemini_response(question):
+        response=chat.send_message(question,stream=True)
+        return response
 
-if user_picked == 'ChatBot':
-    model = gemini_pro()
-    
-    if "chat_history" not in st.session_state:
-        st.session_state['chat_history'] = model.start_chat(history=[])
+    ##initialize our streamlit app
+    input=st.text_input("Input: ",key="input")
+    submit=st.button("Ask the question")
 
-    st.title("🤖TalkBot")
+    if submit and input:
+        response=get_gemini_response(input)
+        # Add user query and response to session state chat history
+        st.session_state['chat_history'].append(("You", input))
+        st.subheader("The Response is")
+        for chunk in response:
+            st.write(chunk.text)
+            st.session_state['chat_history'].append(("Bot", chunk.text))
+    st.subheader("The Chat History is")
+        
+    for role, text in st.session_state['chat_history']:
+        st.write(f"{role}: {text}")
 
-    #Display the chat history
-    for message in st.session_state.chat_history.history:
-        with st.chat_message(roleForStreamlit(message.role)):    
-            st.markdown(message.parts[0].text)
-
-    # Get user input
-    user_input = st.chat_input("Type your message here : ")
-    if user_input:
-        st.chat_message("user").markdown(user_input)
-        reponse = st.session_state.chat_history.send_message(user_input)
-        with st.chat_message("assistant"):
-            st.markdown(reponse.text)
-
-
-if user_picked == 'Image Captioning':
-    model = gemini_vision()
-
-    st.title("🖼️Image Captioning")
-
-    image = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
-
-    user_prompt = st.text_input("Enter the prompt for image captioning:")
-
-    if st.button("Generate Caption"):
-        load_image = Image.open(image)
-
-        colLeft, colRight = st.columns(2)
-
-        with colLeft:
-            st.image(load_image.resize((800, 500)))
-
-        caption_response = gemini_visoin_response(model, user_prompt, load_image)
-
-        with colRight:
-            st.info(caption_response)
+    authenticator.logout("Logout","sidebar")
+    st.sidebar.title(f"welcome {name}")
+        
